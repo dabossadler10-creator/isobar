@@ -730,7 +730,7 @@ async function loadAll() {
     saveSnap();
     const k = snapKey();
     Coast.load(lat, lon).then(coast => { if (k !== snapKey()) return; S.d.coast = coast; safe(() => Coast.render()); saveSnap(); }).catch(() => {});
-    if (!store.get(`hist.${S.loc.lat.toFixed(2)},${S.loc.lon.toFixed(2)}`, null)) History.load();
+    if (!store.get(`hist2.${S.loc.lat.toFixed(2)},${S.loc.lon.toFixed(2)}`, null)) History.load();
   } finally { loading = false; $("#refresh").classList.remove("spin"); }
 }
 // Last good data per place, so the app opens instantly and works with no signal
@@ -823,6 +823,7 @@ addEventListener("hashchange", () => showView(location.hash.slice(1)));
 if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
 
 /* boot */
+try { Object.keys(localStorage).filter(k => k.startsWith("isobar.hist.")).forEach(k => localStorage.removeItem(k)); } catch (e) {}
 setUnits(S.units);
 Sky.init();
 Radar.init();

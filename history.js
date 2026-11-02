@@ -12,7 +12,7 @@ const History = {
   locKey() { return `${S.loc.lat.toFixed(2)},${S.loc.lon.toFixed(2)}`; },
   show() {
     const k = this.locKey();
-    if (!this.data || this.key !== k) { const c = store.get("hist." + k, null); if (c) { this.data = c; this.key = k; } }
+    if (!this.data || this.key !== k) { const c = store.get("hist2." + k, null); if (c) { this.data = c; this.key = k; } }
     this.render();
     if (!this.data || this.key !== k || Date.now() - this.data.at > 3 * 3600e3) this.load();
   },
@@ -21,21 +21,21 @@ const History = {
   async load() {
     if (this.loading) return; this.loading = true;
     const k = this.locKey(), { lat, lon } = S.loc;
-    const iso = d => d.toISOString().slice(0, 10), today = new Date(), start = new Date(Date.now() - 400 * 864e5);
+    const iso = d => d.toLocaleDateString("en-CA", { timeZone: S.tz }), today = new Date(), start = new Date(Date.now() - 400 * 864e5);
     try {
       let res = null;
       try { res = await this.loadACIS(lat, lon, iso(start), iso(today)); } catch (e) { res = null; }
       if (!res) res = await this.loadArchive(lat, lon, iso(start), iso(new Date(Date.now() - 2 * 864e5)));
       if (k !== this.locKey()) return;
-      res.at = Date.now(); this.data = res; this.key = k; store.set("hist." + k, res);
+      res.at = Date.now(); this.data = res; this.key = k; store.set("hist2." + k, res);
     } catch (e) {
       if (!this.data) $("#hStats").innerHTML = `<div class="err">Couldn't load past weather right now. It will try again next time you open this tab.</div>`;
     } finally { this.loading = false; this.render(); safe(() => Outlook.render()); }
   },
   async loadACIS(lat, lon, sdate, edate) {
-    const recent = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
+    const recent = new Date(Date.now() - 30 * 864e5).toLocaleDateString("en-CA", { timeZone: S.tz });
     const meta = await this.acis("StnMeta", { bbox: [lon - .45, lat - .35, lon + .45, lat + .35], elems: "maxt,mint,pcpn", sdate: recent, edate, meta: "name,uid,ll,valid_daterange,sids" });
-    const fresh = new Date(Date.now() - 8 * 864e5).toISOString().slice(0, 10);
+    const fresh = new Date(Date.now() - 8 * 864e5).toLocaleDateString("en-CA", { timeZone: S.tz });
     const cands = (meta.meta || []).filter(m => m.valid_daterange && m.valid_daterange.every(r => r.length && r[1] >= fresh)).map(m => {
       const km = Coast.dist(lat, lon, m.ll[1], m.ll[0]), since = m.valid_daterange[0][0];
       const icao = (m.sids || []).some(s => / 5$/.test(s));

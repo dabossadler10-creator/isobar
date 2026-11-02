@@ -118,7 +118,7 @@ const Outlook = {
     else if (diff <= -5) out.push(`Cooling as the week goes on, with highs sliding from ${Td(D[0].hi)} ${name(D[0])} to ${Td(minD.hi)} by ${name(minD)}.`);
     else out.push(`Highs stay pretty steady, in the ${tens(avg(his))}${maxD.hi - minD.hi >= 4 ? `, warmest ${name(maxD)} at ${Td(maxD.hi)}` : ""}.`);
     // compare with normals from the History tab's station, when we have them
-    const hist = store.get(`hist.${S.loc.lat.toFixed(2)},${S.loc.lon.toFixed(2)}`, null);
+    const hist = store.get(`hist2.${S.loc.lat.toFixed(2)},${S.loc.lon.toFixed(2)}`, null);
     const nrow = hist && hist.rows && [...hist.rows].reverse().find(r => r.nhi != null);
     if (nrow) {
       const dv = avg(his) - nrow.nhi, dd = Math.round(Math.abs(US() ? dv : dv * 5 / 9));
