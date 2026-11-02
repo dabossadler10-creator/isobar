@@ -220,6 +220,10 @@ a{color:inherit}
 .panel h5{margin:14px 6px 4px;font:600 11px var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
 
 [hidden]{display:none!important}
+.outlook{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px 28px;margin-bottom:16px;padding:18px 20px}
+@media (max-width:700px){.outlook{grid-template-columns:minmax(0,1fr)}}
+.outlook .label{margin-bottom:8px}
+.outlook p{margin:0;font:400 16.5px/1.55 var(--f-body);color:var(--ink);max-width:62ch;text-wrap:pretty}
 
 /* tab bar */
 .app{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 96px)}
@@ -346,6 +350,7 @@ select option{background:#16233a;color:#F6F8FB}
     <div class="nowcast" id="hNow"></div>
     <div id="hAlert" hidden style="grid-column:1/-1"></div>
   </section>
+  <section class="card outlook" id="cOutlook" hidden></section>
 
   <div class="grid">
     <div class="col">
@@ -462,6 +467,7 @@ select option{background:#16233a;color:#F6F8FB}
 <script src="coast.js"></script>
 <script src="history.js"></script>
 <script src="ride.js"></script>
+<script src="outlook.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

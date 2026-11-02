@@ -318,7 +318,7 @@ function render() {
   $("#hSide").innerHTML = icon(c.type, !!c.isDay, "bigicon");
   Sky.set(c.type, timeOfDay());
   renderAlertsBanner(); renderMinutely(); renderHourly(); renderDays(); renderNow(); renderAir(); renderAlerts(); renderAFD();
-  safe(() => Coast.render()); safe(() => Ride.refresh()); safe(() => History.onData());
+  safe(() => Coast.render()); safe(() => Outlook.render()); safe(() => Ride.refresh()); safe(() => History.onData());
   if (S.offline) $("#hObs").innerHTML = `<span class="status"><i></i>Offline · from ${new Intl.DateTimeFormat("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" }).format(d.at)}</span>`;
   Radar.update();
   $("#updated").textContent = d.at ? `Updated ${new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit" }).format(d.at)}` + (d.pts ? ` · NWS ${d.pts.properties.gridId} grid ${d.pts.properties.gridX},${d.pts.properties.gridY}` : " · Outside NWS coverage, showing global model data") : "";
@@ -730,6 +730,7 @@ async function loadAll() {
     S.d = { pts, fc, hr, obs, alerts, afd, om, aq, coast, at: Date.now() };
     render();
     saveSnap();
+    if (!store.get(`hist.${S.loc.lat.toFixed(2)},${S.loc.lon.toFixed(2)}`, null)) History.load();
   } finally { loading = false; $("#refresh").classList.remove("spin"); }
 }
 // Last good data per place, so the app opens instantly and works with no signal

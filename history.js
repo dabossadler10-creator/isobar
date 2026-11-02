@@ -30,7 +30,7 @@ const History = {
       res.at = Date.now(); this.data = res; this.key = k; store.set("hist." + k, res);
     } catch (e) {
       if (!this.data) $("#hStats").innerHTML = `<div class="err">Couldn't load past weather right now. It will try again next time you open this tab.</div>`;
-    } finally { this.loading = false; this.render(); }
+    } finally { this.loading = false; this.render(); safe(() => Outlook.render()); }
   },
   async loadACIS(lat, lon, sdate, edate) {
     const recent = new Date(Date.now() - 30 * 864e5).toISOString().slice(0, 10);
