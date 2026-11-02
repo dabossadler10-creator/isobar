@@ -47,7 +47,8 @@ const Outlook = {
     const al = alertsList();
     if (al.length) { const a = al[0].properties, until = a.ends || a.expires; out.push(`There's a ${esc(a.event)} in effect${until ? ` until ${fmt(new Date(until), { weekday: "short", hour: "numeric", minute: "2-digit" })}` : ""}.`); }
     const dayP = P[0].isDaytime ? P[0] : P[1], nightP = P[0].isDaytime ? P[1] : P[0];
-    const dayWord = P[0].isDaytime ? "today" : "tomorrow";
+    const dayWord = dateKey(new Date(dayP.startTime)) === dateKey(new Date()) ? "today" : "tomorrow";
+    const nightWord = /overnight/i.test(nightP.name) ? "overnight" : "tonight";
     const dayKey = dateKey(new Date(dayP.startTime));
     const daySent = () => {
       let sky = nwsSky(dayP.shortForecast);
@@ -57,7 +58,7 @@ const Outlook = {
       }
       return `${cap(sky)} ${dayWord}, with a high near ${Td(dayP.temperature)}.`;
     };
-    const nightSent = () => `${cap(nwsSky(nightP.shortForecast))} tonight, with a low around ${Td(nightP.temperature)}.`;
+    const nightSent = () => `${cap(nwsSky(nightP.shortForecast))} ${nightWord}, with a low around ${Td(nightP.temperature)}.`;
     const extras = () => {
       const pop = (dayP.probabilityOfPrecipitation && dayP.probabilityOfPrecipitation.value) || 0;
       const g = nwsGust(dayP), w = nwsWind(dayP), parts = [];
@@ -123,7 +124,7 @@ const Outlook = {
       const dv = avg(his) - nrow.nhi, dd = Math.round(Math.abs(US() ? dv : dv * 5 / 9));
       const mo = new Date().toLocaleDateString("en-US", { month: "long", timeZone: S.tz }), dom = +new Date().toLocaleDateString("en-US", { day: "numeric", timeZone: S.tz });
       const when = `${dom <= 10 ? "early" : dom <= 20 ? "mid" : "late"} ${mo}`;
-      out.push(dd < 3 ? `That's about normal for ${when}.` : `That's ${dd}° ${dv > 0 ? "warmer" : "cooler"} than normal for ${when}, when highs usually run around ${Td(nrow.nhi)}.`);
+      out.push(Math.abs(dv) < 3 ? `That's about normal for ${when}.` : `That's ${dd}° ${dv > 0 ? "warmer" : "cooler"} than normal for ${when}, when highs usually run around ${Td(nrow.nhi)}.`);
     }
     const cold = D.reduce((a, b) => (b.lo ?? 99) < (a.lo ?? 99) ? b : a);
     if (cold.lo != null && cold.lo <= 42) out.push(`Coldest night is ${name(cold)}, down to ${Td(cold.lo)}.`);

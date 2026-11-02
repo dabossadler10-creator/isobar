@@ -111,7 +111,7 @@ const Ride = {
     if (S.view !== "ride") return;
     const h = this.home();
     if (!h) { $("#rSummary").innerHTML = `<div class="err">The forecast hasn't loaded yet. Pull down to refresh.</div>`; return; }
-    if (!this.days) this.fillDays(); else { this.fillTimes(); }
+    if (!this.days || this.days[0] !== dateKey(new Date())) { this.start = null; this.fillDays(); } else { this.fillTimes(); }
     if (this.start == null) { $("#rSummary").innerHTML = `<div class="err">No daylight start times left in the forecast window.</div>`; return; }
     if (this.turn && this.turnKey !== `${this.turn.lat},${this.turn.lon}`) { this.loadTurn(); return; }
     const r = this.compute(this.start, this.dur), P = r.pts;

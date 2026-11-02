@@ -95,19 +95,19 @@ const Coast = {
     const now = Date.now(), t0 = now - 6 * 3600e3, t1 = now + 18 * 3600e3;
     const pts = td.curve.filter(p => p.t >= t0 && p.t <= t1);
     const ev = td.hilo.filter(p => p.t >= t0 && p.t <= t1);
-    const hu = v => US() ? v : v * .3048, unit = US() ? "ft" : "m", fh = v => `${hu(v).toFixed(1)} ${unit}`;
+    const hu = v => US() ? v : v * .3048, unit = US() ? "ft" : "m", fh = v => `${hu(v).toFixed(1).replace(/^-0\.0$/, "0.0")} ${unit}`;
     const W = 340, H = 140, padT = 26, padB = 22;
     const vs = pts.map(p => p.v), mn = Math.min(...vs), mx = Math.max(...vs), rg = Math.max(.5, mx - mn);
     const X = t => (t - t0) / (t1 - t0) * W, Y = v => padT + (1 - (v - mn) / rg) * (H - padT - padB);
     const path = smoothPath(pts.map(p => [+X(p.t).toFixed(1), +Y(p.v).toFixed(1)]));
     let svg = `<svg class="tidesvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tide height over the next 18 hours"><defs><linearGradient id="tdg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7CC4FF" stop-opacity=".45"/><stop offset="1" stop-color="#7CC4FF" stop-opacity=".05"/></linearGradient></defs>`;
     svg += `<path d="${path} L${W},${H - padB} L0,${H - padB} Z" fill="url(#tdg)"/><path d="${path}" fill="none" stroke="#7CC4FF" stroke-width="2.2"/>`;
-    const nx = X(now); svg += `<line x1="${nx}" x2="${nx}" y1="8" y2="${H - padB}" stroke="rgba(255,255,255,.55)" stroke-dasharray="3 3"/><text x="${nx}" y="${H - 6}" text-anchor="middle" class="tl">Now</text>`;
+    const nx = X(now); svg += `<line x1="${nx}" x2="${nx}" y1="13" y2="${H - padB}" stroke="rgba(255,255,255,.55)" stroke-dasharray="3 3"/><text x="${nx}" y="9" text-anchor="middle" class="tl">Now</text>`;
     ev.forEach(e => { const x = X(e.t), y = Y(e.v); const anchor = x < 30 ? "start" : x > W - 30 ? "end" : "middle";
       svg += `<circle cx="${x}" cy="${y}" r="3.5" fill="#fff"/><text x="${x}" y="${e.type === "H" ? y - 9 : y + 16}" text-anchor="${anchor}">${tShort(e.t)}</text>`; });
     svg += `</svg>`;
     // current state
-    let cur = null; for (let i = 0; i < td.curve.length - 1; i++) if (td.curve[i].t <= now && td.curve[i + 1].t > now) { cur = td.curve[i]; cur.rising = td.curve[i + 1].v > td.curve[i].v; break; }
+    let cur = null; for (let i = 0; i < td.curve.length - 1; i++) { const p0 = td.curve[i], p1 = td.curve[i + 1]; if (p0.t <= now && p1.t > now) { const f = (now - p0.t) / (p1.t - p0.t); cur = { v: p0.v + (p1.v - p0.v) * f, rising: p1.v > p0.v }; break; } }
     const next = td.hilo.filter(e => e.t > now).slice(0, 4);
     const nx1 = next[0];
     const head = cur && nx1 ? `${cur.rising ? "Rising" : "Falling"}, ${fh(cur.v)} now. ${nx1.type === "H" ? "High" : "Low"} tide ${fh(nx1.v)} at ${clock(nx1.t)}` : "";

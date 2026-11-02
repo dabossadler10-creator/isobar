@@ -390,7 +390,8 @@ function renderHourly() {
   const src = S.d.hr ? "NWS" : "Model";
   const label = `<div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Hourly<span class="src">${src} · 48 hr</span></div>`;
   if (!hs.length) { el.innerHTML = label + `<div class="err">Hourly forecast isn't available right now.</div>`; return; }
-  const cw = 56, H = 178, n = hs.length, Wd = cw * n;
+  const anyPop = hs.some(x => x.pop >= 10);
+  const cw = 56, H = anyPop ? 178 : 142, n = hs.length, Wd = cw * n;
   const temps = hs.map(h => T(h.temp)), mn = Math.min(...temps), mx = Math.max(...temps), rg = Math.max(1, mx - mn);
   const y = t => 122 - (t - mn) / rg * 46;
   const pts = hs.map((h, i) => [i * cw + cw / 2, +y(T(h.temp)).toFixed(1)]);
@@ -445,7 +446,7 @@ function renderDays() {
 function uvCat(u) { return u == null ? ["--", "var(--ink-3)"] : u < 3 ? ["Low", "var(--good)"] : u < 6 ? ["Moderate", "var(--mod)"] : u < 8 ? ["High", "var(--usg)"] : u < 11 ? ["Very high", "var(--bad)"] : ["Extreme", "var(--vbad)"]; }
 function renderNow() {
   const c = S.cur, el = $("#cNow"), om = S.d.om;
-  const src = c.src === "obs" ? `${c.station.id} ${esc(c.station.name)}` : "Model analysis";
+  const src = c.src === "obs" ? `${c.station.id} ${esc(titleCase(String(c.station.name).split(",").pop().trim()))}` : "Model analysis";
   // pressure trend from model
   let trend = "";
   if (om && om.hourly) { const h = om.hourly, i = omIndexNow(h.time); if (i >= 3 && h.pressure_msl[i] != null) { const dp = h.pressure_msl[i] - h.pressure_msl[i - 3]; trend = dp > 1 ? "Rising" : dp < -1 ? "Falling" : "Steady"; } }
@@ -723,10 +724,12 @@ async function loadAll() {
     }
     S.offline = false;
     S.tz = (om && om.timezone) || (pts && pts.properties.timeZone) || undefined;
-    const coast = await Coast.load(lat, lon).catch(() => null);
-    S.d = { pts, fc, hr, obs, alerts, afd, om, aq, coast, at: Date.now() };
+    const prevCoast = S.d && S.d.coast;
+    S.d = { pts, fc, hr, obs, alerts, afd, om, aq, coast: prevCoast, at: Date.now() };
     render();
     saveSnap();
+    const k = snapKey();
+    Coast.load(lat, lon).then(coast => { if (k !== snapKey()) return; S.d.coast = coast; safe(() => Coast.render()); saveSnap(); }).catch(() => {});
     if (!store.get(`hist.${S.loc.lat.toFixed(2)},${S.loc.lon.toFixed(2)}`, null)) History.load();
   } finally { loading = false; $("#refresh").classList.remove("spin"); }
 }

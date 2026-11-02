@@ -94,7 +94,9 @@ const History = {
     const diff = (a, n) => { if (a == null || n == null) return ""; const d = US() ? a - n : (a - n) * 5 / 9; const r = Math.round(d * 10) / 10; return `<span class="${r > 0 ? "up" : r < 0 ? "down" : ""}">${r > 0 ? "+" : ""}${r.toFixed(1)}°</span> vs normal`; };
     const rin = v => US() ? `${v.toFixed(2)}"` : `${Math.round(v * 25.4)} mm`;
     const pct = (a, n) => n > .005 ? `${Math.round(a / n * 100)}% of normal (${rin(n)})` : n != null && hasN ? "Normally dry this time of year" : "";
-    const last = all[all.length - 1], rec = D.rec;
+    const raw = D.rows[D.rows.length - 1], rec = D.rec;
+    const isToday = raw.d === new Date().toLocaleDateString("en-CA", { timeZone: S.tz });
+    const last = isToday || raw.nhi != null ? raw : all[all.length - 1];
     const rangeName = { 7: "7 days", 30: "30 days", 90: "90 days", 365: "year" }[this.days] || this.days + " days";
     $("#hStats").innerHTML = `<div class="label">Last ${rangeName}<span class="src">${dlbl(rows[0].d)} to ${dlbl(rows[rows.length - 1].d)}</span></div><div class="stats">
       <div class="stat"><div class="k">Average high</div><div class="v num">${Td(aH)}</div><div class="d">${hasN ? diff(aH, nH) : "&nbsp;"}</div></div>
@@ -102,7 +104,7 @@ const History = {
       <div class="stat"><div class="k">Rain</div><div class="v num">${rin(pS)}</div><div class="d">${hasN ? pct(pS, pN) : `${rainDays} day${rainDays === 1 ? "" : "s"} with rain`}</div></div>
       <div class="stat"><div class="k">Rain since Oct 1</div><div class="v num">${rin(wyS)}</div><div class="d">${hasN && wyN > 0 ? `${Math.round(wyS / wyN * 100)}% of normal for the season so far` : "Water year to date"}</div></div>
       <div class="stat"><div class="k">Extremes</div><div class="v num" style="font-size:20px"><span class="up">${Td(warm && warm.hi)}</span> / <span class="down">${Td(cold && cold.lo)}</span></div><div class="d">Warmest ${warm ? dlbl(warm.d) : "--"}, coldest ${cold ? dlbl(cold.d) : "--"}</div></div>
-      <div class="stat"><div class="k">On ${dlbl(last.d)}</div><div class="v num" style="font-size:20px">${last.nhi != null ? `${Td(last.nhi)} / ${Td(last.nlo)}` : `${Td(last.hi)} / ${Td(last.lo)}`}</div><div class="d">${last.nhi != null ? "Normal high and low." : "High and low."}${rec && rec.hi != null ? ` Records ${Td(rec.hi)} in ${rec.hiY}, ${Td(rec.lo)} in ${rec.loY}.` : ""}</div></div>
+      <div class="stat"><div class="k">${isToday ? "Today, " + dlbl(last.d) : "On " + dlbl(last.d)}</div><div class="v num" style="font-size:20px">${last.nhi != null ? `${Td(last.nhi)} / ${Td(last.nlo)}` : `${Td(last.hi)} / ${Td(last.lo)}`}</div><div class="d">${last.nhi != null ? "Normal high and low." : "High and low."}${rec && rec.hi != null ? ` Records ${Td(rec.hi)} in ${rec.hiY}, ${Td(rec.lo)} in ${rec.loY}.` : ""}</div></div>
     </div>`;
     this.tempChart(rows, hasN);
     this.rainChart(rows, hasN);

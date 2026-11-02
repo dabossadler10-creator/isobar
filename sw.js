@@ -1,5 +1,5 @@
 // Isobar offline shell. Bump VERSION when shipping changes so phones pick them up.
-const VERSION = "isobar-v10";
+const VERSION = "isobar-v11";
 const SHELL = ["./", "index.html", "app.js", "coast.js", "history.js", "ride.js", "outlook.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png", "icons/apple-touch-icon.png"];
 const CDN = /^https:\/\/(unpkg\.com|fonts\.googleapis\.com|fonts\.gstatic\.com)\//;
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
