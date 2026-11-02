@@ -39,7 +39,48 @@ const Outlook = {
     if (!parts.length) return s.gust < 15 ? `Dry, with light wind ${when}.` : `Dry ${when}.`;
     return parts.join(" ") + ".";
   },
+  // NWS forecast periods are the authority for sky, highs, lows, rain chance and wind; the model only adds timing
   dayText(h) {
+    const P = S.d.fc && S.d.fc.properties && S.d.fc.properties.periods;
+    if (!P || P.length < 3) return this.dayTextModel(h);
+    const i0 = omIndexNow(h.time), out = [];
+    const al = alertsList();
+    if (al.length) { const a = al[0].properties, until = a.ends || a.expires; out.push(`There's a ${esc(a.event)} in effect${until ? ` until ${fmt(new Date(until), { weekday: "short", hour: "numeric", minute: "2-digit" })}` : ""}.`); }
+    const dayP = P[0].isDaytime ? P[0] : P[1], nightP = P[0].isDaytime ? P[1] : P[0];
+    const dayWord = P[0].isDaytime ? "today" : "tomorrow";
+    const dayKey = dateKey(new Date(dayP.startTime));
+    const daySent = () => {
+      let sky = nwsSky(dayP.shortForecast);
+      if (/fog|low cloud|then/i.test(dayP.shortForecast) && h.cloud_cover_low) {
+        const clear = this.idxFor(h, dayKey, 8, 14, i0).find(i => (h.cloud_cover_low[i] ?? 0) < 40);
+        if (clear != null) sky += `, clearing around ${hourLbl(new Date(h.time[clear] * 1000))}`;
+      }
+      return `${cap(sky)} ${dayWord}, with a high near ${Td(dayP.temperature)}.`;
+    };
+    const nightSent = () => `${cap(nwsSky(nightP.shortForecast))} tonight, with a low around ${Td(nightP.temperature)}.`;
+    const extras = () => {
+      const pop = (dayP.probabilityOfPrecipitation && dayP.probabilityOfPrecipitation.value) || 0;
+      const g = nwsGust(dayP), w = nwsWind(dayP), parts = [];
+      if (pop >= 30) {
+        const idx = this.idxFor(h, dayKey, 6, 20, i0); let best = null;
+        idx.forEach(i => { const v = h.precipitation_probability[i] || 0; if (v >= 20 && (!best || v > best[0])) best = [v, i]; });
+        parts.push(`${Math.round(pop)}% chance of ${/snow/i.test(dayP.shortForecast) ? "snow" : /shower/i.test(dayP.shortForecast) ? "showers" : "rain"}${best ? `, mainly around ${hourLbl(new Date(h.time[best[1]] * 1000))}` : ""}`);
+      }
+      if (g >= 35) parts.push(`${parts.length ? "and windy" : "Windy"}, with gusts up to ${W(g)}`);
+      else if (g >= 25) parts.push(`${parts.length ? "and breezy" : "Breezy"}, with gusts up to ${W(g)}`);
+      const wet = /rain|shower|drizzle|snow|storm|chance/i.test(dayP.shortForecast);
+      if (!parts.length) return wet ? (w <= 10 ? "Light wind." : `Wind around ${W(w)}.`) : w <= 10 ? "Dry, with light wind." : `Dry, with wind around ${W(w)}.`;
+      return parts.join(" ") + ".";
+    };
+    if (P[0].isDaytime) { out.push(daySent(), extras(), nightSent()); }
+    else { out.push(nightSent(), daySent(), extras()); }
+    const ti = this.stats(h, this.idxFor(h, dayKey, 9, 16, i0));
+    if (ti && ti.uv >= 7) out.push(`UV gets up to ${Math.round(ti.uv)} midday.`);
+    const aq = S.d.aq && S.d.aq.current && S.d.aq.current.us_aqi;
+    if (aq > 100) out.push(`Air quality is ${aqiCat(aq)[1].toLowerCase()} right now (AQI ${Math.round(aq)}).`);
+    return out.join(" ");
+  },
+  dayTextModel(h) {
     const i0 = omIndexNow(h.time), nowH = localHour(new Date());
     const today = dateKey(new Date()), tmrw = dateKey(new Date(Date.now() + 864e5));
     const out = [];
@@ -65,7 +106,7 @@ const Outlook = {
     return out.join(" ");
   },
   weekText() {
-    const D = S.days.slice(1, 8).filter(d => d.hi != null);
+    const D = S.days.slice(1, 8).filter(d => d.hi != null).map(d => d.day || d.night ? { ...d, gust: Math.max(nwsGust(d.day), nwsGust(d.night)) } : d);
     if (D.length < 3) return "The extended forecast isn't available right now.";
     const name = d => new Date(d.key + "T12:00:00Z").toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
     const avg = a => a.reduce((s, x) => s + x, 0) / a.length;
@@ -102,3 +143,6 @@ const Outlook = {
 const cap = s => s ? s[0].toUpperCase() + s.slice(1) : s;
 const tens = f => { const v = +T(f), t = Math.floor(v / 10) * 10, r = v - t; return `${r <= 3 ? "low" : r <= 6 ? "mid" : "upper"} ${t}s`; };
 const list = a => a.length <= 1 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1];
+function nwsSky(t) { return String(t || "").toLowerCase().replace(/\b(slight )?chance\b/, (m, sl) => `a ${sl || ""}chance of`).replace(/\s+/g, " "); }
+function nwsGust(p) { if (!p) return 0; const m = /gusts as high as (\d+)/i.exec(p.detailedForecast || ""); return m ? +m[1] : 0; }
+function nwsWind(p) { const n = String(p && p.windSpeed || "").match(/\d+/g); return n ? Math.max(...n.map(Number)) : 0; }

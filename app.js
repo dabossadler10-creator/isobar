@@ -225,7 +225,7 @@ function current() {
   }
   if (om) {
     c.t ??= om.temperature_2m; c.dew ??= om.dew_point_2m; c.rh ??= om.relative_humidity_2m;
-    c.wind ??= om.wind_speed_10m; c.gust ??= om.wind_gusts_10m; c.dir ??= om.wind_direction_10m;
+    c.wind ??= om.wind_speed_10m; if (c.src !== "obs") c.gust ??= om.wind_gusts_10m; c.dir ??= om.wind_direction_10m; // a station that reports no gust means no gusts
     c.pres ??= om.pressure_msl != null ? om.pressure_msl / 33.8639 : null;
     c.vis ??= om.visibility != null ? om.visibility / 1609.34 : null;
     c.feels ??= om.apparent_temperature; c.uv = om.uv_index; c.cloud = om.cloud_cover; c.isDay = om.is_day; c.code = om.weather_code;
@@ -449,12 +449,15 @@ function renderNow() {
   // pressure trend from model
   let trend = "";
   if (om && om.hourly) { const h = om.hourly, i = omIndexNow(h.time); if (i >= 3 && h.pressure_msl[i] != null) { const dp = h.pressure_msl[i] - h.pressure_msl[i - 3]; trend = dp > 1 ? "Rising" : dp < -1 ? "Falling" : "Steady"; } }
-  // uv peak today
+  // uv: today's protection window, or tomorrow's once the sun is down
   let uvLine = "";
+  const afterSunset = om && om.daily && Date.now() / 1000 > om.daily.sunset[0];
   if (om && om.hourly) {
-    const h = om.hourly, k = dateKey(new Date()); let pk = -1, pt = null, on = null, off = null;
+    const h = om.hourly, k = dateKey(new Date(Date.now() + (afterSunset ? 864e5 : 0))); let pk = -1, pt = null, on = null, off = null;
     h.time.forEach((t, i) => { const dt = new Date(t * 1000); if (dateKey(dt) !== k) return; const u = h.uv_index[i]; if (u > pk) { pk = u; pt = dt; } if (u >= 3) { if (!on) on = dt; off = new Date((t + 3600) * 1000); } });
-    uvLine = on ? `Protection ${clock(on)} to ${clock(off)}` : pk >= 0 ? `Peak ${Math.round(pk)} at ${hourLbl(pt)}` : "";
+    const pre = afterSunset ? "Tomorrow: " : "";
+    uvLine = on ? `${pre}protect ${clock(on)} to ${clock(off)}` : pk >= 0 ? `${pre}peak ${Math.round(pk)} around ${hourLbl(pt)}` : "";
+    uvLine = uvLine && uvLine[0].toUpperCase() + uvLine.slice(1);
   }
   const [uvc, uvcol] = uvCat(c.uv);
   const dirDeg = c.dir ?? 0;
@@ -463,10 +466,10 @@ function renderNow() {
   let sun = "";
   const dl = om && om.daily;
   if (dl) {
-    const sr = dl.sunrise[0], ss = dl.sunset[0], now = Date.now() / 1000, f = Math.min(1, Math.max(0, (now - sr) / (ss - sr)));
+    const di = afterSunset && dl.sunrise.length > 1 ? 1 : 0, sr = dl.sunrise[di], ss = dl.sunset[di], now = Date.now() / 1000, f = Math.min(1, Math.max(0, (now - sr) / (ss - sr)));
     const ang = Math.PI * (1 - f), cx = 150 + 130 * Math.cos(ang), cy = 62 - 52 * Math.sin(ang);
     const len = ss - sr, hrs = Math.floor(len / 3600), mins = Math.round(len % 3600 / 60);
-    sun = `<div class="tile wide"><div class="label">Sun</div><svg class="sunarc" viewBox="0 0 300 70" preserveAspectRatio="none"><path d="M20 62 A130 52 0 0 1 280 62" fill="none" stroke="rgba(255,255,255,.25)" stroke-dasharray="3 5"/><line x1="0" x2="300" y1="62" y2="62" stroke="rgba(255,255,255,.2)"/>${now > sr && now < ss ? `<circle cx="${cx}" cy="${cy}" r="7" fill="#FFD36B"/>` : ""}</svg><div class="s num" style="display:flex;justify-content:space-between"><span>Sunrise ${clock(new Date(sr * 1000))}</span><span>${hrs}h ${mins}m of daylight</span><span>Sunset ${clock(new Date(ss * 1000))}</span></div></div>`;
+    sun = `<div class="tile wide"><div class="label">${di ? "Sun tomorrow" : "Sun"}</div><svg class="sunarc" viewBox="0 0 300 70" preserveAspectRatio="none"><path d="M20 62 A130 52 0 0 1 280 62" fill="none" stroke="rgba(255,255,255,.25)" stroke-dasharray="3 5"/><line x1="0" x2="300" y1="62" y2="62" stroke="rgba(255,255,255,.2)"/>${now > sr && now < ss ? `<circle cx="${cx}" cy="${cy}" r="7" fill="#FFD36B"/>` : ""}</svg><div class="s num" style="display:flex;justify-content:space-between"><span>Sunrise ${clock(new Date(sr * 1000))}</span><span>${hrs}h ${mins}m of daylight</span><span>Sunset ${clock(new Date(ss * 1000))}</span></div></div>`;
   }
   const dewFeel = c.dew == null ? "" : c.dew < 50 ? "Dry and comfortable" : c.dew < 60 ? "Comfortable" : c.dew < 65 ? "Getting sticky" : c.dew < 70 ? "Muggy" : "Oppressive";
   el.innerHTML = `<div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/></svg>Current conditions<span class="src">${src}</span></div>
