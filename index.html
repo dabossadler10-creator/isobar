@@ -128,28 +128,44 @@ a{color:inherit}
 @media (max-width:420px){.dayrow{grid-template-columns:50px 30px 38px 34px minmax(30px,1fr) 34px 14px;gap:6px}.daydetail{padding-left:0}}
 
 /* radar */
-.radarcard{padding:0;overflow:hidden}
-.radarhead{padding:14px 16px 10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.radarhead .label{margin:0 8px 0 0}
+.radarcard{padding:0;overflow:hidden;margin-top:16px}
+.radarhead{display:flex;align-items:center;justify-content:space-between;gap:10px 14px;padding:14px 16px 12px;flex-wrap:wrap}
+.radarhead .label{margin:0;flex:1;min-width:0}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{padding:6px 11px;border-radius:999px;font-size:13px;font-weight:600;background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--ink-2)}
 .chip[aria-pressed="true"]{background:var(--ink);color:#0d1726;border-color:var(--ink)}
-#map{height:420px;background:#0d1522}
-@media (max-width:600px){#map{height:360px}}
-.leaflet-container{font-family:var(--f-body)}
-.leaflet-control-attribution{background:rgba(10,20,36,.6)!important;color:var(--ink-3)!important;font-size:10px!important}
-.leaflet-control-attribution a{color:var(--ink-2)!important}
-.timeline{display:flex;align-items:center;gap:12px;padding:12px 16px 14px}
-.timeline input{flex:1;accent-color:var(--sun);min-width:0}
-.play{width:40px;height:40px;border-radius:50%;background:var(--ink);color:#0d1726;display:grid;place-items:center;flex:none}
-.play svg{width:16px;height:16px}
-.ftime{font:500 13px var(--f-mono);min-width:96px;text-align:right}
-.legend{display:flex;align-items:center;gap:8px;padding:0 16px 14px;font:500 11px var(--f-mono);color:var(--ink-3)}
-.legend i{flex:1;height:8px;border-radius:4px;max-width:260px}
-.mapnote{padding:0 16px 12px;font-size:13px;color:var(--ink-2)}
-.zoombtns{position:absolute;right:max(10px,env(safe-area-inset-right,0px));top:10px;z-index:500;display:grid;gap:6px}
-.zoombtns button{width:34px;height:34px;border-radius:10px;background:var(--glass-2);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:18px;font-weight:600}
+.seg{display:flex;gap:2px;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid var(--line);overflow-x:auto;max-width:100%;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.seg button{padding:6px 13px;border-radius:999px;font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#0d1726}
+#map{height:min(66vh,540px);background:#0a1322}
+@media (max-width:600px){#map{height:min(62vh,460px)}}
+.leaflet-container{font-family:var(--f-body);background:#0a1322}
+.basemap{filter:sepia(.5) hue-rotate(175deg) saturate(2.2) brightness(1.05) contrast(1.05)}
+.basemap img.leaflet-tile{width:256.6px!important;height:256.6px!important}
+.labels{opacity:.75}
+.smooth{filter:blur(6px)}
+.leaflet-control-attribution{background:transparent!important;color:rgba(246,248,251,.45)!important;font-size:9px!important;padding:2px 8px!important}
+.leaflet-control-attribution a{color:rgba(246,248,251,.6)!important}
 .mapwrap{position:relative}
+.maplegend{position:absolute;left:12px;top:12px;z-index:600;display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:10px;background:rgba(10,18,32,.7);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:500 10px var(--f-mono);color:var(--ink-2);max-width:calc(100% - 24px)}
+.maplegend i{width:84px;height:6px;border-radius:3px;flex:none}
+.mapbar{position:absolute;left:12px;right:12px;bottom:14px;z-index:600;display:flex;align-items:center;gap:12px;padding:6px 14px 6px 6px;border-radius:999px;background:rgba(10,18,32,.74);border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.mapbar input{flex:1;min-width:0;-webkit-appearance:none;appearance:none;height:22px;background:transparent}
+.mapbar input::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:rgba(255,255,255,.22)}
+.mapbar input::-moz-range-track{height:4px;border-radius:2px;background:rgba(255,255,255,.22)}
+.mapbar input::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;margin-top:-6px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.mapbar input::-moz-range-thumb{width:16px;height:16px;border:0;border-radius:50%;background:#fff}
+.play{width:36px;height:36px;border-radius:50%;background:var(--ink);color:#0d1726;display:grid;place-items:center;flex:none}
+.play svg{width:14px;height:14px}
+.ftime{font:500 12.5px var(--f-mono);min-width:64px;text-align:right;white-space:nowrap}
+.mapnote{padding:12px 16px;font-size:13px;color:var(--ink-2)}
+.zoombtns{position:absolute;right:12px;bottom:72px;z-index:600;display:grid;gap:6px}
+.zoombtns button{width:36px;height:36px;border-radius:12px;background:rgba(10,18,32,.74);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-size:18px;font-weight:600;display:grid;place-items:center}
+@media (hover:none){.zoombtns button:not(#zHome){display:none}}
+.me{width:14px;height:14px;border-radius:50%;background:var(--sun);border:2.5px solid #fff;box-shadow:0 0 0 0 rgba(255,211,107,.6);animation:pulse 2.4s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 14px rgba(255,211,107,0)}100%{box-shadow:0 0 0 0 rgba(255,211,107,0)}}
+@media (prefers-reduced-motion:reduce){.me{animation:none}}
 
 /* alerts */
 .alert{border-left:4px solid var(--mod);padding:10px 0 10px 12px;border-top:1px solid var(--line)}
@@ -340,25 +356,6 @@ select option{background:#16233a;color:#F6F8FB}
       <section class="card" id="cAfd" hidden></section>
     </div>
     <div class="col">
-      <section class="card radarcard" id="cRadar">
-        <div class="radarhead">
-          <div class="label">Maps</div>
-          <div class="chips" role="group" aria-label="Map layer">
-            <button class="chip" data-mode="radar" aria-pressed="true">Radar</button>
-            <button class="chip" data-mode="future" aria-pressed="false">Future radar</button>
-            <button class="chip" data-mode="sat" aria-pressed="false">Satellite</button>
-            <button class="chip" data-mode="temp" aria-pressed="false">Temperature</button>
-          </div>
-        </div>
-        <div class="mapwrap"><div id="map"></div><div class="zoombtns"><button id="zIn" aria-label="Zoom in">+</button><button id="zOut" aria-label="Zoom out">&minus;</button></div></div>
-        <div class="timeline" id="tl">
-          <button class="play" id="playBtn" aria-label="Play"></button>
-          <input type="range" id="frameRange" min="0" max="10" value="10" aria-label="Frame">
-          <div class="ftime num" id="fTime">Now</div>
-        </div>
-        <div class="legend" id="legend"></div>
-        <div class="mapnote" id="mapNote" hidden></div>
-      </section>
       <section class="card" id="cAlerts" hidden></section>
       <section class="card" id="cNow"><div class="label">Current conditions</div><span class="skel" style="width:100%;height:220px"></span></section>
       <section class="card" id="cMarine" hidden></section>
@@ -366,6 +363,28 @@ select option{background:#16233a;color:#F6F8FB}
       <section class="card" id="cAir"><div class="label">Air and health</div><span class="skel" style="width:100%;height:160px"></span></section>
     </div>
   </div>
+  <section class="card radarcard" id="cRadar">
+    <div class="radarhead">
+      <div class="label">Maps<span class="src" id="mapSrc"></span></div>
+      <div class="seg" role="group" aria-label="Map layer">
+        <button data-mode="radar" aria-pressed="true">Radar</button>
+        <button data-mode="future" aria-pressed="false">Future</button>
+        <button data-mode="sat" aria-pressed="false">Satellite</button>
+        <button data-mode="temp" aria-pressed="false">Temperature</button>
+      </div>
+    </div>
+    <div class="mapwrap">
+      <div id="map"></div>
+      <div class="maplegend" id="legend"></div>
+      <div class="zoombtns"><button id="zIn" aria-label="Zoom in">+</button><button id="zOut" aria-label="Zoom out">&minus;</button><button id="zHome" aria-label="Back to my location"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg></button></div>
+      <div class="mapbar" id="tl">
+        <button class="play" id="playBtn" aria-label="Play"></button>
+        <input type="range" id="frameRange" min="0" max="10" value="10" aria-label="Frame">
+        <div class="ftime num" id="fTime">Now</div>
+      </div>
+    </div>
+    <div class="mapnote" id="mapNote" hidden></div>
+  </section>
   </div>
 
   <div id="vRide" hidden>

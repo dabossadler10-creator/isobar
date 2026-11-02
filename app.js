@@ -557,80 +557,101 @@ function lerpStops(st, v) {
   for (let i = 0; i < st.length - 1; i++) if (v <= st[i + 1][0]) { const t = (v - st[i][0]) / (st[i + 1][0] - st[i][0]); return st[i][1].map((x, j) => x + (st[i + 1][1][j] - x) * t); }
 }
 const Radar = {
-  map: null, mode: "radar", frames: [], idx: 0, timer: null, layers: {}, overlay: null, grid: null, gridKey: "", playing: false, sat: null, alertLayer: null, marker: null,
+  map: null, mode: "radar", frames: [], idx: 0, timer: null, overlay: null, gridKey: "", playing: false, sat: null, alertLayer: null, marker: null,
+  radarLayers: [], radarSrc: "", radarAt: 0, ZOOM: 8,
   init() {
-    if (!window.L) { $("#map").innerHTML = `<div class="err" style="padding:20px">The map library didn't load. Check your connection and refresh.</div>`; return; }
-    const m = this.map = L.map("map", { zoomControl: false, attributionControl: true, worldCopyJump: true }).setView([S.loc.lat, S.loc.lon], 7);
+    if (!window.L) { $("#map").innerHTML = `<div class="err" style="padding:20px">The map didn't load. Check your connection and refresh.</div>`; return; }
+    const m = this.map = L.map("map", { zoomControl: false, attributionControl: true, worldCopyJump: true, zoomSnap: .5 }).setView([S.loc.lat, S.loc.lon], this.ZOOM);
+    m.attributionControl.setPrefix(false);
     const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/";
-    L.tileLayer(ESRI + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { attribution: "Base map © Esri", maxNativeZoom: 16, maxZoom: 12 }).addTo(m);
+    L.tileLayer(ESRI + "World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", { attribution: "© Esri", maxNativeZoom: 16, maxZoom: 12, className: "basemap" }).addTo(m);
     m.createPane("labels"); m.getPane("labels").style.zIndex = 650; m.getPane("labels").style.pointerEvents = "none";
-    L.tileLayer(ESRI + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { pane: "labels", maxNativeZoom: 16, maxZoom: 12 }).addTo(m);
-    this.marker = L.circleMarker([S.loc.lat, S.loc.lon], { radius: 7, color: "#fff", weight: 3, fillColor: "#FFD36B", fillOpacity: 1, pane: "markerPane" }).addTo(m);
-    this.alertLayer = L.geoJSON(null, { style: f => ({ color: { Extreme: "#E5484D", Severe: "#E5484D", Moderate: "#F5A524", Minor: "#E8C547" }[f.properties.severity] || "#7CC4FF", weight: 2, fillOpacity: .12 }) }).addTo(m);
-    // NEXRAD past hour, 5-minute frames
-    const offs = [50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 0];
-    this.radarFrames = offs.map(o => {
-      const name = o ? `nexrad-n0q-900913-m${String(o).padStart(2, "0")}m` : "nexrad-n0q-900913";
-      const layer = L.tileLayer(`https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/${name}/{z}/{x}/{y}.png`, { opacity: 0, zIndex: 400, maxZoom: 12, attribution: "NEXRAD: NOAA via IEM" });
-      return { layer, off: o };
-    });
+    L.tileLayer(ESRI + "World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", { pane: "labels", maxNativeZoom: 16, maxZoom: 12, className: "labels" }).addTo(m);
+    this.marker = L.marker([S.loc.lat, S.loc.lon], { icon: L.divIcon({ className: "", html: '<div class="me"></div>', iconSize: [14, 14], iconAnchor: [7, 7] }), interactive: false, keyboard: false }).addTo(m);
+    this.alertLayer = L.geoJSON(null, { style: f => ({ color: { Extreme: "#E5484D", Severe: "#E5484D", Moderate: "#F5A524", Minor: "#E8C547" }[f.properties.severity] || "#7CC4FF", weight: 1.5, fillOpacity: .1, dashArray: "4 4" }) }).addTo(m);
     $("#zIn").onclick = () => m.zoomIn(); $("#zOut").onclick = () => m.zoomOut();
-    document.querySelectorAll(".chip").forEach(b => b.onclick = () => this.setMode(b.dataset.mode));
+    $("#zHome").onclick = () => m.setView([S.loc.lat, S.loc.lon], this.ZOOM);
+    document.querySelectorAll(".seg button").forEach(b => b.onclick = () => this.setMode(b.dataset.mode));
     $("#playBtn").onclick = () => this.toggle();
     $("#frameRange").oninput = e => { this.stop(); this.show(+e.target.value); };
     m.on("moveend", () => { if (this.mode === "future" || this.mode === "temp") { clearTimeout(this._mt); this._mt = setTimeout(() => this.loadGrid(), 600); } });
     this.setMode("radar");
   },
+  // Past two hours of NOAA NEXRAD, smoothed and clutter-filtered by RainViewer. Falls back to raw NEXRAD from Iowa State.
+  async loadRadar() {
+    this.radarLayers.forEach(f => this.map.hasLayer(f.layer) && this.map.removeLayer(f.layer));
+    let layers = [];
+    try {
+      const r = await getJSON("https://api.rainviewer.com/public/weather-maps.json", {}, 10000);
+      layers = r.radar.past.map(p => ({ t: new Date(p.time * 1000), layer: L.tileLayer(`${r.host}${p.path}/256/{z}/{x}/{y}/4/1_1.png`, { opacity: 0, zIndex: 400, maxNativeZoom: 7, maxZoom: 12, attribution: "NEXRAD: NOAA via RainViewer" }) }));
+      this.radarSrc = "NOAA NEXRAD";
+    } catch (e) {
+      const base = Math.floor(Date.now() / 300000) * 300000 - 300000;
+      layers = [50, 40, 30, 20, 10, 0].map(o => ({ t: new Date(base - o * 60000), layer: L.tileLayer(`https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/${o ? `nexrad-n0q-900913-m${String(o).padStart(2, "0")}m` : "nexrad-n0q-900913"}/{z}/{x}/{y}.png`, { opacity: 0, zIndex: 400, maxZoom: 12, attribution: "NEXRAD: NOAA via IEM" }) }));
+      this.radarSrc = "NOAA NEXRAD (raw)";
+    }
+    this.radarLayers = layers; this.radarAt = Date.now();
+  },
   update() {
     if (!this.map) return;
     const ll = [S.loc.lat, S.loc.lon];
-    if (this._loc !== ll.join()) { this._loc = ll.join(); this.map.setView(ll, 7); this.marker.setLatLng(ll); this.gridKey = ""; if (this.mode === "future" || this.mode === "temp") this.loadGrid(); }
+    if (this._loc !== ll.join()) { this._loc = ll.join(); this.map.setView(ll, this.ZOOM); this.marker.setLatLng(ll); this.gridKey = ""; if (this.mode === "future" || this.mode === "temp") this.loadGrid(); }
     this.alertLayer.clearLayers();
     alertsList().forEach(a => { if (a.geometry) this.alertLayer.addData(a); });
-    if (this.mode === "radar") this.radarNote();
+    if (this.mode === "radar" && Date.now() - this.radarAt > 9 * 60e3) this.setMode("radar");
     setTimeout(() => this.map.invalidateSize(), 50);
   },
-  radarNote() { const n = $("#mapNote"); const outside = !S.d.pts; n.hidden = !outside; n.textContent = outside ? "NEXRAD radar covers the United States. Future radar shows model precipitation anywhere." : ""; },
+  note(txt) { const n = $("#mapNote"); n.hidden = !txt; n.textContent = txt || ""; },
   clear() {
     this.stop();
-    this.radarFrames.forEach(f => this.map.hasLayer(f.layer) && this.map.removeLayer(f.layer));
+    this.radarLayers.forEach(f => this.map.hasLayer(f.layer) && this.map.removeLayer(f.layer));
     if (this.overlay) { this.map.removeLayer(this.overlay); this.overlay = null; }
-    if (this.sat) { this.map.removeLayer(this.sat); }
-    $("#mapNote").hidden = true;
+    if (this.sat) { this.map.removeLayer(this.sat); this.sat = null; }
+    this.frames = []; this.note("");
   },
-  setMode(mode) {
+  async setMode(mode) {
     this.mode = mode; this.clear();
-    document.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === mode));
+    document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === mode));
     $("#tl").hidden = mode === "sat";
+    $("#mapSrc").textContent = { radar: "", future: "HRRR model", sat: "NOAA GOES", temp: "HRRR model" }[mode];
+    if (mode === "radar" || mode === "sat") {
+      if (!this.radarLayers.length || Date.now() - this.radarAt > 9 * 60e3) { $("#fTime").textContent = "Loading"; await this.loadRadar(); }
+      if (this.mode !== mode) return;
+    }
     if (mode === "radar") {
-      this.radarFrames.forEach(f => f.layer.addTo(this.map));
-      const base = new Date(Math.floor(Date.now() / 300000) * 300000 - 300000);
-      this.frames = this.radarFrames.map(f => ({ label: f.off ? clock(new Date(base - f.off * 60000)) : "Latest", show: on => f.layer.setOpacity(on ? .78 : 0) }));
-      this.legend("precip", "Light", "Heavy"); this.radarNote();
-      this.show(this.frames.length - 1); this.play();
+      $("#mapSrc").textContent = this.radarSrc;
+      this.radarLayers.forEach(f => f.layer.addTo(this.map));
+      const n = this.radarLayers.length;
+      this.frames = this.radarLayers.map((f, i) => ({ label: i === n - 1 ? "Now" : clock(f.t), show: on => f.layer.setOpacity(on ? .85 : 0) }));
+      this.legend("precip", "Light", "Heavy");
+      if (!S.d.pts && S.d.om) this.note("Radar covers the US and a few other countries. Future shows model rain anywhere.");
+      this.show(n - 1); this.play();
     } else if (mode === "sat") {
-      this.makeSat(); this.frames = [];
-      this.radarFrames[10].layer.addTo(this.map).setOpacity(.55);
-      $("#legend").innerHTML = `<span>GOES satellite, latest scan. True color by day, infrared at night. Radar overlaid.</span>`;
-    } else { this.legend(mode === "temp" ? "temp" : "precip", mode === "temp" ? (US() ? "-10°" : "-23°") : "Light", mode === "temp" ? (US() ? "110°" : "43°") : "Heavy"); this.loadGrid(); }
+      this.makeSat();
+      const last = this.radarLayers[this.radarLayers.length - 1]; if (last) last.layer.addTo(this.map).setOpacity(.6);
+      $("#legend").innerHTML = `<span>Latest scan. True color by day, infrared at night</span>`;
+    } else {
+      this.legend(mode === "temp" ? "temp" : "precip", mode === "temp" ? (US() ? "-10°" : "-23°") : "Light", mode === "temp" ? (US() ? "110°" : "43°") : "Heavy");
+      this.loadGrid();
+    }
   },
   makeSat() {
     const sat = S.loc.lon < -105 ? "GOES-West" : "GOES-East";
     // GeoColor: true color by day, infrared with city lights at night. Falls back to plain infrared.
     const opts = [[`${sat}_ABI_GeoColor`, 7, "jpg"], [`${sat}_ABI_Band13_Clean_Infrared`, 6, "png"]]; let li = 0;
-    const mk = () => { const [lyr, lv, ext] = opts[li]; return L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${lyr}/default/GoogleMapsCompatible_Level${lv}/{z}/{y}/{x}.${ext}`, { maxNativeZoom: lv, maxZoom: 12, opacity: .92, zIndex: 300, attribution: "GOES: NOAA via NASA GIBS" }); };
+    const mk = () => { const [lyr, lv, ext] = opts[li]; return L.tileLayer(`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${lyr}/default/GoogleMapsCompatible_Level${lv}/{z}/{y}/{x}.${ext}`, { maxNativeZoom: lv, maxZoom: 12, opacity: .95, zIndex: 300, attribution: "GOES: NOAA via NASA GIBS" }); };
     const attach = () => { this.sat = mk(); let errs = 0; this.sat.on("tileerror", () => { if (++errs === 4 && li < opts.length - 1 && this.mode === "sat") { this.map.removeLayer(this.sat); li++; attach(); } }); this.sat.addTo(this.map); };
     attach();
   },
   legend(kind, lo, hi) {
-    const g = kind === "temp" ? TEMP_STOPS.map(s => `rgb(${s[1].join(",")})`).join(",") : "rgb(70,205,125),rgb(40,170,70),rgb(240,220,60),rgb(245,150,40),rgb(228,58,58),rgb(190,60,190)";
+    const g = kind === "temp" ? TEMP_STOPS.map(s => `rgb(${s[1].join(",")})`).join(",") : "#7FE38A,#23A84B,#F4E04D,#F59B2A,#E23D3D,#C447C9";
     $("#legend").innerHTML = `<span>${lo}</span><i style="background:linear-gradient(90deg,${g})"></i><span>${hi}</span>`;
   },
   async loadGrid() {
     const m = this.map, mode = this.mode;
     let b = m.getBounds(); const c = b.getCenter();
     let dLat = Math.min(4, (b.getNorth() - b.getSouth()) / 2 * 1.1), dLon = Math.min(5.5, (b.getEast() - b.getWest()) / 2 * 1.1);
-    const N = 11, n = c.lat + dLat, s = c.lat - dLat, w = c.lng - dLon, e = c.lng + dLon;
+    const N = 13, n = c.lat + dLat, s = c.lat - dLat, w = c.lng - dLon, e = c.lng + dLon;
     const key = [n, s, w, e].map(v => v.toFixed(2)).join() + mode;
     if (key === this.gridKey) return; this.gridKey = key;
     const lats = [], lons = [];
@@ -647,8 +668,8 @@ const Radar = {
       const urls = [];
       for (let f = st; f < times.length; f++) urls.push({ t: times[f], url: this.paint(series.map(sr => sr[f]), N, mode) });
       if (this.overlay) this.map.removeLayer(this.overlay);
-      this.overlay = L.imageOverlay(urls[0].url, [[s, w], [n, e]], { opacity: mode === "temp" ? .55 : .85, zIndex: 400, interactive: false }).addTo(this.map);
-      this.frames = urls.map((u, i) => ({ label: (i === 0 ? "Now" : "+" + fmtDur(u.t - urls[0].t)) + " · " + hourLbl(new Date(u.t * 1000)), show: on => on && this.overlay.setUrl(u.url) }));
+      this.overlay = L.imageOverlay(urls[0].url, [[s, w], [n, e]], { opacity: mode === "temp" ? .55 : .85, zIndex: 400, interactive: false, className: "smooth" }).addTo(this.map);
+      this.frames = urls.map((u, i) => ({ label: i === 0 ? "Now" : clock(new Date(u.t * 1000)), show: on => on && this.overlay.setUrl(u.url) }));
       this.show(0); this.play();
     } catch (err) { $("#fTime").textContent = "Unavailable"; this.gridKey = ""; }
   },
