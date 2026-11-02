@@ -14,6 +14,7 @@ const History = {
     const k = this.locKey();
     if (!this.data || this.key !== k) { const c = store.get("hist2." + k, null); if (c) { this.data = c; this.key = k; } }
     this.render();
+    if (!S.tz) return; // wait for the forecast to give us the local time zone; onData calls back here
     if (!this.data || this.key !== k || Date.now() - this.data.at > 3 * 3600e3) this.load();
   },
   onData() { if (S.view === "history") this.show(); else if (this.data && this.key !== this.locKey()) this.data = null; },

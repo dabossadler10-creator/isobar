@@ -730,7 +730,7 @@ async function loadAll() {
     saveSnap();
     const k = snapKey();
     Coast.load(lat, lon).then(coast => { if (k !== snapKey()) return; S.d.coast = coast; safe(() => Coast.render()); saveSnap(); }).catch(() => {});
-    if (!store.get(`hist2.${S.loc.lat.toFixed(2)},${S.loc.lon.toFixed(2)}`, null)) History.load();
+    if (S.view !== "history" && !store.get(`hist2.${S.loc.lat.toFixed(2)},${S.loc.lon.toFixed(2)}`, null)) History.load();
   } finally { loading = false; $("#refresh").classList.remove("spin"); }
 }
 // Last good data per place, so the app opens instantly and works with no signal
