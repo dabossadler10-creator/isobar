@@ -350,7 +350,7 @@ const esc = s => String(s ?? "").replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": 
 
 function renderMinutely() {
   const m = S.d.om && S.d.om.minutely_15, el = $("#cMin");
-  const label = `<div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c3 4.5 6 7.8 6 11a6 6 0 0 1-12 0c0-3.2 3-6.5 6-11z"/></svg>Next 6 hours<span class="src">HRRR 15-min</span></div>`;
+  const label = `<div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c3 4.5 6 7.8 6 11a6 6 0 0 1-12 0c0-3.2 3-6.5 6-11z"/></svg>Next 6 hours<span class="src">${S.d.pts ? "HRRR 15-min" : "Model 15-min"}</span></div>`;
   if (!m) { el.innerHTML = label + `<div class="err">Precipitation timing isn't available right now.</div>`; $("#hNow").innerHTML = ""; return; }
   const now = Date.now() / 1000; let s = 0; while (s < m.time.length - 1 && m.time[s + 1] <= now) s++;
   const pts = []; for (let i = s; i < Math.min(m.time.length, s + 24); i++) pts.push({ t: new Date(m.time[i] * 1000), r: (m.precipitation[i] || 0) * 4 });

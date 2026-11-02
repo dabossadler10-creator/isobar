@@ -40,7 +40,7 @@ const Coast = {
     const at = i => new Date(h.time[i] * 1000), low = i => h.cloud_cover_low[i] ?? 0, LH = i => localHour(at(i));
     let anyLow = false; for (let i = i0; i < N; i++) if (low(i) >= 40) anyLow = true;
     const afdLine = this.afdMarine();
-    if (!coastal && !anyLow && !afdLine) { el.hidden = true; return; }
+    if (!coastal && !afdLine) { el.hidden = true; return; } // a coastal feature: show it on the coast or when NWS forecasters mention it
     el.hidden = false;
 
     const today = dateKey(new Date()), nowH = localHour(new Date());

@@ -152,7 +152,7 @@ const Ride = {
     if (dark.length) warn = `<div class="warn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg><span>Part of this ride is in the dark${dark[0].t > this.start ? `, starting around ${clock(new Date(dark[0].t * 1000))}` : ""}. Bring front and rear lights.</span></div>`;
     const maxPop = Math.max(...P.map(x => x.pop));
     $("#rSummary").innerHTML = `<div class="label">Forecast for your ride<span class="src">${fmt(startD, { weekday: "short" })} ${clock(startD)} to ${clock(end)}</span></div>
-      <div class="verdict">${grade}, ${tempRange}<small>${maxPop >= 20 ? `${Math.round(maxPop)}% chance of rain at some point. ` : "Dry. "}${minA < minT - 3 ? `Feels as cool as ${Td(minA)} at times. ` : ""}Gusts up to ${W(Math.max(...P.map(x => x.gust)))}.</small></div>${legs}${turnBox}${warn}`;
+      <div class="verdict">${grade}, ${tempRange}<small>${maxPop >= 20 ? `${Math.round(maxPop)}% chance of rain at some point. ` : "Dry. "}${minA < minT - 3 ? `Feels as cool as ${Td(minA)} at times. ` : ""}${Math.max(...P.map(x => x.gust)) < 12 ? "Light wind." : `Gusts up to ${W(Math.max(...P.map(x => x.gust)))}.`}</small></div>${legs}${turnBox}${warn}`;
     this.renderKit(r, minT, maxT, maxPop);
     this.renderTimeline(r);
   },
@@ -177,7 +177,7 @@ const Ride = {
   },
   renderKit(r, minT, maxT, maxPop) {
     const P = r.pts, el = $("#rKit"); el.hidden = false;
-    const t = minT, lines = [];
+    const t = Math.round(minT), lines = [];
     const base = t >= 72 ? "Jersey and bibs." : t >= 64 ? "Jersey and bibs. Arm warmers if you're starting early or descending." : t >= 56 ? "Arm warmers and a vest. A light base layer if it's gray." : t >= 48 ? "Long-sleeve jersey or arm and knee warmers, a vest, and light full-finger gloves." : t >= 40 ? "Thermal jacket, tights, full-finger gloves and shoe covers." : "Full winter kit: thermal jacket, tights, heavy gloves, shoe covers and a cap under the helmet.";
     lines.push(`<div><b>Clothing.</b> ${base}${maxT - minT >= 10 ? ` It swings ${Math.round(US() ? maxT - minT : (maxT - minT) * 5 / 9)}° over the ride, so pick layers you can pocket.` : ""}</div>`);
     if (this.turn && this.turnData) {
