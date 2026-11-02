@@ -369,9 +369,9 @@ function renderMinutely() {
     sum = `${peak > .1 ? kind : "Light " + kind.toLowerCase()} starting around ${clock(pts[firstWet].t)}`;
   }
   const bars = pts.map(p => { const h = wet(p.r) ? Math.max(10, Math.min(100, Math.pow(p.r / .4, .55) * 100)) : 3; return `<i class="${wet(p.r) ? "" : "dry"}" style="height:${h}%" title="${clock(p.t)}: ${US() ? p.r.toFixed(2) + " in/hr" : (p.r * 25.4).toFixed(1) + " mm/hr"}"></i>`; }).join("");
-  const ticks = [0, 4, 8, 12, 16, 20, 23].map(i => pts[i] ? `<span>${i === 0 ? "Now" : hourLbl(pts[i].t)}</span>` : "").join("");
+  const ticks = [0, 4, 8, 12, 16, 20].map(i => pts[i] ? `<span>${i === 0 ? "Now" : hourLbl(pts[i].t)}</span>` : "").join("");
   el.innerHTML = label + `<div class="msum">${sum}</div><div class="mcast" role="img" aria-label="${sum}">${bars}</div><div class="mticks">${ticks}</div>`;
-  $("#hNow").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c3 4.5 6 7.8 6 11a6 6 0 0 1-12 0c0-3.2 3-6.5 6-11z"/></svg>${sum}`;
+  $("#hNow").innerHTML = firstWet === -1 ? "" : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3c3 4.5 6 7.8 6 11a6 6 0 0 1-12 0c0-3.2 3-6.5 6-11z"/></svg>${sum}`;
 }
 
 function smoothPath(pts) {
@@ -386,6 +386,7 @@ function smoothPath(pts) {
 }
 function renderHourly() {
   const hs = hourly(), el = $("#cHour");
+  if (hs.length && S.cur && S.cur.src === "obs" && S.cur.t != null) hs[0] = { ...hs[0], temp: S.cur.t };
   const src = S.d.hr ? "NWS" : "Model";
   const label = `<div class="label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Hourly<span class="src">${src} · 48 hr</span></div>`;
   if (!hs.length) { el.innerHTML = label + `<div class="err">Hourly forecast isn't available right now.</div>`; return; }
@@ -498,15 +499,6 @@ function renderAir() {
     if (aq.hourly) { const i0 = omIndexNow(aq.hourly.time); const hv = aq.hourly.us_aqi.slice(i0, i0 + 24).filter(x => x != null); const mx = Math.max(100, ...hv); bars = `<div class="aqbars" role="img" aria-label="AQI next 24 hours">${hv.map(x => `<i style="height:${Math.max(6, x / mx * 100)}%;background:${aqiHex(x)}"></i>`).join("")}</div><div class="wticks"><span>Now</span><span>+12h</span><span>+24h</span></div>`; }
     html += `<div class="aqwrap"><svg class="gauge" viewBox="0 0 150 92">${segs}<circle cx="${nx}" cy="${ny}" r="7" fill="#fff" stroke="rgba(10,20,36,.7)" stroke-width="3"/><text x="75" y="78" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-size="30" font-weight="500" fill="#F6F8FB">${v}</text></svg><div><div class="aqcat" style="color:${cat[2]}">${cat[1]}</div><div class="s muted" style="font-size:14px;margin-top:2px">${cat[3]}</div><div class="chipsrow">${chips}</div></div></div>${bars}`;
   } else html += `<div class="err">Air quality data isn't available right now.</div>`;
-  // pollen
-  const PL = [["Grass", "grass_pollen"], ["Ragweed", "ragweed_pollen"], ["Birch", "birch_pollen"], ["Alder", "alder_pollen"], ["Mugwort", "mugwort_pollen"], ["Olive", "olive_pollen"]];
-  const have = aq && aq.current && PL.some(p => aq.current[p[1]] != null);
-  html += `<div class="sub"><div class="label" style="margin-bottom:8px">Pollen</div>`;
-  if (have) {
-    const lvl = v => v < 1 ? ["None", "var(--ink-3)"] : v < 20 ? ["Low", "var(--good)"] : v < 50 ? ["Moderate", "var(--mod)"] : v < 200 ? ["High", "var(--usg)"] : ["Very high", "var(--bad)"];
-    html += `<div class="pollen">${PL.filter(p => aq.current[p[1]] != null).map(p => { const v = aq.current[p[1]], l = lvl(v); return `<div class="pchip"><span style="color:${l[1]}">●</span> ${p[0]} <b style="font-weight:500">${l[0]}</b></div>`; }).join("")}</div>`;
-  } else html += `<div class="s muted" style="font-size:13px">Pollen counts aren't published for this location by the free data sources this app uses. They're available across Europe.</div>`;
-  html += `</div>`;
   html += outdoorWindow();
   el.innerHTML = html;
 }
