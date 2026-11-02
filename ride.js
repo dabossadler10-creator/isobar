@@ -152,7 +152,7 @@ const Ride = {
     if (dark.length) warn = `<div class="warn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11z"/></svg><span>Part of this ride is in the dark${dark[0].t > this.start ? `, starting around ${clock(new Date(dark[0].t * 1000))}` : ""}. Bring front and rear lights.</span></div>`;
     const maxPop = Math.max(...P.map(x => x.pop));
     $("#rSummary").innerHTML = `<div class="label">Forecast for your ride<span class="src">${fmt(startD, { weekday: "short" })} ${clock(startD)} to ${clock(end)}</span></div>
-      <div class="verdict">${grade}, ${tempRange}<small>${maxPop >= 20 ? `${Math.round(maxPop)}% chance of rain at some point. ` : "Dry. "}${minA < minT - 3 ? `Feels as cold as ${Td(minA)} in the wind. ` : ""}Gusts up to ${W(Math.max(...P.map(x => x.gust)))}.</small></div>${legs}${turnBox}${warn}`;
+      <div class="verdict">${grade}, ${tempRange}<small>${maxPop >= 20 ? `${Math.round(maxPop)}% chance of rain at some point. ` : "Dry. "}${minA < minT - 3 ? `Feels as cool as ${Td(minA)} at times. ` : ""}Gusts up to ${W(Math.max(...P.map(x => x.gust)))}.</small></div>${legs}${turnBox}${warn}`;
     this.renderKit(r, minT, maxT, maxPop);
     this.renderTimeline(r);
   },
