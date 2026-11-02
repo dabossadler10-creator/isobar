@@ -29,7 +29,12 @@ const Coast = {
     out.tide = tide; out.marine = marine && marine.current && marine.current.sea_surface_temperature != null ? marine.current : null;
     return out;
   },
-  render() { this.renderMarine(); this.renderTides(); },
+  render() {
+    // saved offline copies store times as text; turn them back into dates
+    const td = S.d.coast && S.d.coast.tide;
+    if (td) ["hilo", "curve"].forEach(k => (td[k] || []).forEach(p => { if (!(p.t instanceof Date)) p.t = new Date(p.t); }));
+    this.renderMarine(); this.renderTides();
+  },
 
   /* ---- marine layer ---- */
   renderMarine() {
@@ -91,6 +96,7 @@ const Coast = {
   renderTides() {
     const el = $("#cTides"), c = S.d.coast, td = c && c.tide;
     if (!td || !td.curve.length) { el.hidden = true; return; }
+    if (!td.curve.some(p => p.t >= Date.now() - 6 * 3600e3 && p.t <= Date.now() + 18 * 3600e3)) { el.hidden = true; return; } // saved data too old to chart
     el.hidden = false;
     const now = Date.now(), t0 = now - 6 * 3600e3, t1 = now + 18 * 3600e3;
     const pts = td.curve.filter(p => p.t >= t0 && p.t <= t1);
