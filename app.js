@@ -33,18 +33,20 @@ function aqUrl(la, lo) {
     "&hourly=us_aqi&forecast_days=3&timezone=auto&timeformat=unixtime";
 }
 async function getObs(stationsUrl) {
+  // check the nearest few stations at once and use the closest one that reported within the last 75 minutes
   const st = await nws(stationsUrl);
-  const list = (st.features || []).slice(0, 3);
-  for (const f of list) {
+  const list = (st.features || []).slice(0, 5);
+  const res = await Promise.all(list.map(async f => {
     try {
       const id = f.properties.stationIdentifier;
       const o = await nws(`/stations/${id}/observations/latest?require_qc=false`, 0);
       const p = o.properties;
-      const age = Date.now() - new Date(p.timestamp).getTime();
-      if (p.temperature && p.temperature.value != null && age < 3 * 3600e3) return { ...o, station: { id, name: f.properties.name } };
-    } catch (e) {}
-  }
-  return null;
+      if (!p.temperature || p.temperature.value == null) return null;
+      return { ...o, station: { id, name: f.properties.name }, age: Date.now() - new Date(p.timestamp).getTime() };
+    } catch (e) { return null; }
+  }));
+  const ok = res.filter(Boolean);
+  return ok.find(o => o.age < 75 * 60e3) || ok.filter(o => o.age < 3 * 3600e3).sort((x, y) => x.age - y.age)[0] || null;
 }
 async function getAFD(cwa) {
   const list = await nws(`/products/types/AFD/locations/${cwa}`);
